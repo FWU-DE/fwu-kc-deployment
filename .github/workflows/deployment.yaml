@@ -25,14 +25,6 @@ jobs:
           input: statefulset/ingress_tmpl.yml
           output: statefulset/ingress.yml
 
-      - name: Create namespace
-        uses: actions-hub/kubectl@master
-        continue-on-error: true
-        env:
-          KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
-        with:
-          args: create namespace ${{ secrets.NAMESPACE }}
-
       - name: Deploy Keycloak to cluster
         uses: wahyd4/kubectl-helm-action@master
         env:
