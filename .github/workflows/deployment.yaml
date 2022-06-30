@@ -41,7 +41,8 @@ jobs:
           args: |
             helm repo add codecentric https://codecentric.github.io/helm-charts
             helm repo update
-            helm upgrade keycloak codecentric/keycloak --install -f statefulset/values.yaml -n ${{ secrets.NAMESPACE }} --set image.tag=${{ secrets.VERSION }} \
+            helm upgrade keycloak codecentric/keycloak --install -f statefulset/values.yaml -n ${{ secrets.NAMESPACE }} \
+              --set image.tag=${{ secrets.VERSION }},extensions.version=${{ secrets.KC_EXT_VERSION }} \
               --set autoscaling.minReplicas=${{ secrets.KC_MIN_PODS }},autoscaling.maxReplicas=${{ secrets.KC_MAX_PODS }} \
               --set db.name=${{ secrets.KC_DB_NAME }},db.address=${{ secrets.KC_DB_ADDRESS }},db.user=${{ secrets.KC_DB_USER }},db.password=${{ secrets.KC_DB_PASSWORD }} \
               --set admin.user=${{ secrets.KC_USER }},admin.password=${{ secrets.KC_USER_PASSWORD }} \

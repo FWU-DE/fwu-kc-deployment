@@ -206,8 +206,8 @@ extraInitContainers: |
     args:
       - -c
       - |
-        curl -L "https://github.com/FWU-DE/fwu-kc-extensions/releases/download/1.0.0/remove-user-on-logout-1.0.0.jar" >> /extensions/remove-user-on-logout.jar
-        curl -L "https://github.com/FWU-DE/fwu-kc-extensions/releases/download/1.0.0/hmac-mapper-1.0.0.jar" >> /extensions/hmac-mapper.jar
+        curl -L "https://github.com/FWU-DE/fwu-kc-extensions/releases/download/{{ .Values.extensions.version }}/remove-user-on-logout-{{ .Values.extensions.version }}.jar" >> /extensions/remove-user-on-logout.jar
+        curl -L "https://github.com/FWU-DE/fwu-kc-extensions/releases/download/{{ .Values.extensions.version }}/hmac-mapper-{{ .Values.extensions.version }}.jar" >> /extensions/hmac-mapper.jar
         curl -L "https://github.com/aerogear/keycloak-metrics-spi/releases/download/2.5.3/keycloak-metrics-spi-2.5.3.jar" >> /extensions/keycloak-metrics-spi.jar
     volumeMounts:
       - name: extensions
