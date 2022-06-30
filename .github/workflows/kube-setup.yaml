@@ -1,0 +1,51 @@
+name: Kubernetes setup
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment
+        required: true
+        default: dev | staging | prod
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    name: Setup resources
+    environment: ${{ inputs.environment }}
+    steps:
+      - run: echo "Job was triggered by ${{ github.event_name }}, branch ${{ github.ref }}, running on ${{ runner.os }}."
+      - name: Check out repository code
+        uses: actions/checkout@v2
+
+      - name: Create namespace
+        uses: actions-hub/kubectl@master
+        continue-on-error: true
+        env:
+          KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
+        with:
+          args: create namespace ${{ secrets.NAMESPACE }}
+
+      # CertManager is only needed while LetsEncrypt Certs are used!
+      - name: Deploy CertManager to cluster
+        uses: wahyd4/kubectl-helm-action@master
+        continue-on-error: true
+        env:
+          KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG }}
+        with:
+          args: |
+            helm repo add jetstack https://charts.jetstack.io
+            helm repo update
+            helm upgrade cert-manager jetstack/cert-manager --install
+
+      - name: Deploy nginx Ingress Controller to cluster
+        uses: wahyd4/kubectl-helm-action@master
+        continue-on-error: true
+        env:
+          KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG }}
+        with:
+          args: |
+            helm repo add nginx-stable https://helm.nginx.com/stable
+            helm repo update
+            helm upgrade --install ingress-nginx nginx-stable/nginx-ingress
+
+      - run: echo "This job's status is ${{ job.status }}."

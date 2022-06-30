@@ -1,0 +1,249 @@
+image:
+  repository: quay.io/keycloak/keycloak
+  tag: 15.1.1
+  pullPolicy: Always
+
+podLabels:
+  app: keycloak
+
+serviceAccount:
+  create: true
+  name: keycloak
+
+rbac:
+  create: true
+  rules:
+    - apiGroups:
+        - ""
+      resources:
+        - pods
+      verbs:
+        - get
+        - list
+
+autoscaling:
+  enabled: true
+  labels: {}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 50
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 300
+
+resources:
+  requests:
+    cpu: 1400m
+    memory: 2048M
+  #limits:
+  #  cpu: 1600m
+  #  memory: 2048M
+
+livenessProbe: |
+  httpGet:
+    path: /auth/
+    port: http
+  initialDelaySeconds: 80
+  timeoutSeconds: 5
+
+readinessProbe: |
+  httpGet:
+    path: /auth/realms/master
+    port: http
+  initialDelaySeconds: 80
+
+startupProbe: |
+  httpGet:
+    path: /auth/
+    port: http
+  initialDelaySeconds: 80
+
+affinity: |
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchLabels:
+            {{- include "keycloak.selectorLabels" . | nindent 10 }}
+          matchExpressions:
+            - key: app.kubernetes.io/component
+              operator: NotIn
+              values:
+                - test
+        topologyKey: kubernetes.io/hostname
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchLabels:
+              {{- include "keycloak.selectorLabels" . | nindent 12 }}
+            matchExpressions:
+              - key: app.kubernetes.io/component
+                operator: NotIn
+                values:
+                  - test
+          topologyKey: failure-domain.beta.kubernetes.io/zone
+
+securityContext: {}
+podSecurityContext: {}
+
+extraEnv: |
+  - name: DB_VENDOR
+    value: postgres
+  - name: DB_DATABASE
+    value: {{ .Values.db.name | quote }}
+  - name: DB_USER
+    value: {{ .Values.db.user | quote }}
+  - name: DB_PASSWORD
+    value: {{ .Values.db.password | quote }}
+  - name: DB_ADDR 
+    value: {{ .Values.db.address | quote }}
+  - name: PROXY_ADDRESS_FORWARDING
+    value: "true"
+  - name: KEYCLOAK_USER
+    value: {{ .Values.admin.user | quote }}
+  - name: KEYCLOAK_PASSWORD
+    value: {{ .Values.admin.password | quote }}
+  - name: JDBC_PARAMS
+    value: "autoReconnect=true"
+  - name: KUBERNETES_LABELS
+    value: app=keycloak
+  - name: KUBERNETES_NAMESPACE
+    valueFrom:
+      fieldRef:
+        fieldPath: metadata.namespace
+  - name: JGROUPS_DISCOVERY_PROTOCOL
+    value: kubernetes.KUBE_PING
+  - name: JGROUPS_DISCOVERY_PROPERTIES
+    value: "namespace=$(KUBERNETES_NAMESPACE)"
+  - name: POD_NAME
+    valueFrom:
+      fieldRef:
+        apiVersion: v1
+        fieldPath: metadata.name          
+  - name: CACHE_OWNERS
+    value: "2"
+  - name: JAVA_OPTS
+    value: >-
+      -server
+      -Djava.net.preferIPv4Stack=true
+      -Djava.awt.headless=true
+      -Djboss.default.jgroups.stack=kubernetes
+      -Djboss.node.name=$(POD_NAME)
+      -Djboss.tx.node.id=$(POD_NAME)
+      -Djboss.site.name=$(KUBERNETES_NAMESPACE)
+  - name: DS_MIN_POOL_SIZE
+    value: "10"
+  - name: DS_MAX_POOL_SIZE
+    value: "100"
+  - name: DS_POOL_PREFILL
+    value: "true"
+  - name: DS_PS_CACHE_SIZE
+    value: "100"
+  - name: HTTP_MAX_CONNECTIONS
+    value: "50000"
+
+startupScripts:
+  fwu-keycloak.cli: |
+    embed-server --server-config=standalone-ha.xml --std-out=echo
+    batch
+    ## To run the script for cache owners
+    echo Configuring cache owners
+
+    /subsystem=infinispan/cache-container=keycloak/distributed-cache=sessions:write-attribute(name=owners, value=${env.CACHE_OWNERS:1})
+    /subsystem=infinispan/cache-container=keycloak/distributed-cache=authenticationSessions:write-attribute(name=owners, value=${env.CACHE_OWNERS:1})
+    /subsystem=infinispan/cache-container=keycloak/distributed-cache=actionTokens:write-attribute(name=owners, value=${env.CACHE_OWNERS:1})
+    /subsystem=infinispan/cache-container=keycloak/distributed-cache=offlineSessions:write-attribute(name=owners, value=${env.CACHE_OWNERS:1})
+    /subsystem=infinispan/cache-container=keycloak/distributed-cache=clientSessions:write-attribute(name=owners, value=${env.CACHE_OWNERS:1})
+    /subsystem=infinispan/cache-container=keycloak/distributed-cache=offlineClientSessions:write-attribute(name=owners, value=${env.CACHE_OWNERS:1})
+    /subsystem=infinispan/cache-container=keycloak/distributed-cache=loginFailures:write-attribute(name=owners, value=${env.CACHE_OWNERS:1})
+
+    ## Configure datasource pool
+    /subsystem=datasources/data-source=KeycloakDS/:write-attribute(name=min-pool-size, value=${env.DS_MIN_POOL_SIZE:10})
+    /subsystem=datasources/data-source=KeycloakDS/:write-attribute(name=max-pool-size, value=${env.DS_MAX_POOL_SIZE:100})
+    /subsystem=datasources/data-source=KeycloakDS/:write-attribute(name=pool-prefill, value=${env.DS_POOL_PREFILL:true})
+    /subsystem=datasources/data-source=KeycloakDS/:write-attribute(name=prepared-statements-cache-size, value=${env.DS_PS_CACHE_SIZE:100})
+
+    ## http & ajp connections 
+    /subsystem=undertow/server=default-server/http-listener=default:write-attribute(name=max-connections,value=${env.HTTP_MAX_CONNECTIONS:50000})
+    /subsystem=undertow/server=default-server/ajp-listener=ajp:write-attribute(name=max-connections,value=${env.AJP_MAX_CONNECTIONS:50000})
+
+    ## undertow threads
+    /subsystem=io/worker=default/:write-attribute(name=task-core-threads,value=1000)	
+    /subsystem=io/worker=default/:write-attribute(name=task-max-threads,value=10000)
+    /subsystem=io/worker=default/:write-attribute(name=io-threads,value=1000)
+
+    run-batch
+    stop-embedded-server
+
+extraVolumes: |
+  - name: extensions
+    emptyDir: {}
+  - name: fwu-idp-theme
+    emptyDir: {}
+  - name: fwu-base-theme
+    emptyDir: {}
+  - name: fwu-vidis-theme
+    emptyDir: {}
+extraVolumeMounts: |
+  - name: extensions
+    mountPath: /opt/jboss/keycloak/standalone/deployments
+  - name: fwu-idp-theme
+    mountPath: /opt/jboss/keycloak/themes/fwu-idp-theme/
+  - name: fwu-base-theme
+    mountPath: /opt/jboss/keycloak/themes/fwu-base-theme/
+  - name: fwu-vidis-theme
+    mountPath: /opt/jboss/keycloak/themes/fwu-vidis-theme/
+extraInitContainers: |
+  - name: extension-provider
+    image: docker.io/curlimages/curl
+    imagePullPolicy: IfNotPresent
+    command:
+      - sh
+    args:
+      - -c
+      - |
+        curl -L "https://github.com/FWU-DE/fwu-kc-extensions/releases/download/1.0.0/remove-user-on-logout-1.0.0.jar" >> /extensions/remove-user-on-logout.jar
+        curl -L "https://github.com/FWU-DE/fwu-kc-extensions/releases/download/1.0.0/hmac-mapper-1.0.0.jar" >> /extensions/hmac-mapper.jar
+        curl -L "https://github.com/aerogear/keycloak-metrics-spi/releases/download/2.5.3/keycloak-metrics-spi-2.5.3.jar" >> /extensions/keycloak-metrics-spi.jar
+    volumeMounts:
+      - name: extensions
+        mountPath: /extensions
+
+  - name: themes-provider
+    image: docker.io/opsydev/docker-curl-zip
+    imagePullPolicy: IfNotPresent
+    command:
+      - sh
+    args:
+      - -c
+      - |
+        curl -k -u "{{ .Values.nexus.user }}:{{ .Values.nexus.password }}" "https://fwu-nexus.intension.eu/repository/vidis-kc-themes/themes/fwu-idp-theme.zip" >> /idp-theme/fwu-idp-theme.zip
+        unzip -o -d /idp-theme/ /idp-theme/fwu-idp-theme.zip
+        mv -f /idp-theme/fwu-idp-theme/* /idp-theme
+        rm -r /idp-theme/fwu-idp-theme.zip /idp-theme/fwu-idp-theme/
+        curl -k -u "{{ .Values.nexus.user }}:{{ .Values.nexus.password }}" "https://fwu-nexus.intension.eu/repository/vidis-kc-themes/themes/fwu-base-theme.zip" >> /base-theme/fwu-base-theme.zip
+        unzip -o -d /base-theme/ /base-theme/fwu-base-theme.zip
+        mv -f /base-theme/fwu-base-theme/* /base-theme
+        rm -r /base-theme/fwu-base-theme.zip /base-theme/fwu-base-theme/
+        curl -k -u "{{ .Values.nexus.user }}:{{ .Values.nexus.password }}" "https://fwu-nexus.intension.eu/repository/vidis-kc-themes/themes/fwu-vidis-theme.zip" >> /vidis-theme/fwu-vidis-theme.zip
+        unzip -o -d /vidis-theme/ /vidis-theme/fwu-vidis-theme.zip
+        mv -f /vidis-theme/fwu-vidis-theme/* /vidis-theme
+        rm -r /vidis-theme/fwu-vidis-theme.zip /vidis-theme/fwu-vidis-theme/
+    volumeMounts:
+      - name: fwu-idp-theme
+        mountPath: /idp-theme/
+      - name: fwu-base-theme
+        mountPath: /base-theme/
+      - name: fwu-vidis-theme
+        mountPath: /vidis-theme/
+
+postgresql:
+  enabled: false
