@@ -6,6 +6,9 @@ on:
         description: Environment
         required: true
         default: dev | staging | prod
+  push:
+    branches:
+      - feature/initialBranch
 
 jobs:
   deployment:
