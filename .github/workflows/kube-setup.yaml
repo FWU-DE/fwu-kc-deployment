@@ -7,9 +7,6 @@ on:
         required: true
         default: dev | staging | prod
 
-env:
-  KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG }}
-
 jobs:
   setup:
     runs-on: ubuntu-latest
@@ -24,7 +21,7 @@ jobs:
         uses: actions-hub/kubectl@master
         continue-on-error: true
         env:
-          KUBE_CONFIG: ${{ env.KUBE_CONFIG_DATA }}
+          KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
         with:
           args: create namespace ${{ secrets.NAMESPACE }}
 
@@ -33,7 +30,7 @@ jobs:
         uses: wahyd4/kubectl-helm-action@master
         continue-on-error: true
         env:
-          KUBE_CONFIG_DATA: ${{ env.KUBE_CONFIG_DATA }}
+          KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG }}
         with:
           args: |
             helm repo add jetstack https://charts.jetstack.io
@@ -44,7 +41,7 @@ jobs:
         uses: wahyd4/kubectl-helm-action@master
         continue-on-error: true
         env:
-          KUBE_CONFIG_DATA: ${{ env.KUBE_CONFIG_DATA }}
+          KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG }}
         with:
           args: |
             helm repo add nginx-stable https://helm.nginx.com/stable
