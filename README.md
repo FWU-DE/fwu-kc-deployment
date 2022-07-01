@@ -14,8 +14,8 @@ Each environment must have the following secrets specified for the deployment:
 | ----------- | ---------------------------------------- | ----------------- |
 | `HOSTNAME`  | Keycloak URL of the environment.         | `dev.example.com` |
 | `NAMESPACE` | Kubernetes namespace to which to deploy. | `default`         |
-| `KC_MIN_PODS` | Minimum numbers of Pods for autoscaling. | `3` |
-| `KC_MAX_PODS` | Maximum numbers of Pods for autoscaling. | `10` |
+| `KC_MIN_PODS` | Minimum number of Pods for autoscaling. | `3` |
+| `KC_MAX_PODS` | Maximum number of Pods for autoscaling. | `10` |
 | `VERSION` | Keycloak version to deploy. | `16.1.1` |
 | `KC_EXT_VERSION` | Version for the Keycloak extensions from [this](https://github.com/FWU-DE/fwu-kc-extensions) repository. | `1.0.0` |
 | `KC_USER` | Username of the Keycloak admin user. | `admin` |
