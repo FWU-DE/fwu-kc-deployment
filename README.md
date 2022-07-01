@@ -24,4 +24,4 @@ Each environment must have the following secrets specified for the deployment:
 | `KC_DB_NAME` | Database name inside the PostgreSQL server for Keycloak data. | `keycloak` |
 | `KC_DB_USER` | Username of the database user used for connecting. | `pgkeycloak` |
 | `KC_DB_PASSWORD` | Password of the database user used for connecting. | `DJ+h78dhh321hdjss` |
-| `KUBE_CONFIG` | Base64 encoded Kubernetes config used for connecting to the cluster.<br />`cat $HOME/.kube/config | base64`<br /> See [here](https://github.com/wahyd4/kubectl-helm-action#how-to-use) | *** |
+| `KUBE_CONFIG` | Base64 encoded Kubernetes config used for connecting to the cluster.<br />`cat $HOME/.kube/config \| base64`<br /> See [here](https://github.com/wahyd4/kubectl-helm-action#how-to-use) | *** |
