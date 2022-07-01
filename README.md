@@ -6,6 +6,13 @@ Keycloak deployment for different environments using Helm.
 
 The GitHub workflow to run the deployment uses [environments](https://docs.github.com/en/actions/deployment/targeting-different-environments/using-environments-for-deployment).
 
+## Repository Secrets
+
+| Name                   | Description                                                  | Example          |
+| ---------------------- | ------------------------------------------------------------ | ---------------- |
+| `NEXUS_THEME_USER`     | Username of the Nexus user that can pull the Keycloak theme. | `nx-user`        |
+| `NEXUS_THEME_PASSWORD` | Password of the Nexus user that can pull the Keycloak theme. | `ZHjd782hsDKuih` |
+
 ## Secrets
 
 Each environment must have the following secrets specified for the deployment:
