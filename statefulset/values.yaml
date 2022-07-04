@@ -188,6 +188,7 @@ extraVolumes: |
     emptyDir: {}
   - name: fwu-vidis-theme
     emptyDir: {}
+
 extraVolumeMounts: |
   - name: extensions
     mountPath: /opt/jboss/keycloak/standalone/deployments
@@ -197,18 +198,32 @@ extraVolumeMounts: |
     mountPath: /opt/jboss/keycloak/themes/fwu-base-theme/
   - name: fwu-vidis-theme
     mountPath: /opt/jboss/keycloak/themes/fwu-vidis-theme/
+
 extraInitContainers: |
-  - name: extension-provider
+  {{ if .Values.extensions }}
+  {{- $extensionsVersion  := .Values.extensionsVersion -}}
+  {{- range $index, $extension := .Values.extensions }}
+  - name: extension-provider{{ $index }}
+    image: docker.io/curlimages/curl
+    imagePullPolicy: Always
+    command: ["sh", "-c"]
+    args:
+      - -c
+      - curl -L "https://github.com/FWU-DE/fwu-kc-extensions/releases/download/{{ $extensionsVersion }}/{{ $extension }}-{{ $extensionsVersion }}.jar" >> /extensions/{{ $extension }}.jar
+    volumeMounts:
+      - name: extensions
+        mountPath: /extensions
+  {{- end }}
+  {{ end }}
+
+  - name: metrics-spi-provider
     image: docker.io/curlimages/curl
     imagePullPolicy: IfNotPresent
     command:
       - sh
     args:
       - -c
-      - |
-        curl -L "https://github.com/FWU-DE/fwu-kc-extensions/releases/download/{{ .Values.extensions.version }}/remove-user-on-logout-{{ .Values.extensions.version }}.jar" >> /extensions/remove-user-on-logout.jar
-        curl -L "https://github.com/FWU-DE/fwu-kc-extensions/releases/download/{{ .Values.extensions.version }}/hmac-mapper-{{ .Values.extensions.version }}.jar" >> /extensions/hmac-mapper.jar
-        curl -L "https://github.com/aerogear/keycloak-metrics-spi/releases/download/2.5.3/keycloak-metrics-spi-2.5.3.jar" >> /extensions/keycloak-metrics-spi.jar
+      - curl -L "https://github.com/aerogear/keycloak-metrics-spi/releases/download/2.5.3/keycloak-metrics-spi-2.5.3.jar" >> /extensions/keycloak-metrics-spi.jar
     volumeMounts:
       - name: extensions
         mountPath: /extensions
