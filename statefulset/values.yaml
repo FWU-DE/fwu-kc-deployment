@@ -201,6 +201,7 @@ extraVolumeMounts: |
 
 extraInitContainers: |
   {{ if .Values.extensions }}
+  {{- $extensionsVersion  := .Values.extensionsVersion -}}
   {{- range $index, $extension := .Values.extensions }}
   - name: extension-provider{{ $index }}
     image: docker.io/curlimages/curl
@@ -208,7 +209,7 @@ extraInitContainers: |
     command: ["sh", "-c"]
     args:
       - -c
-      - curl -L "https://github.com/FWU-DE/fwu-kc-extensions/releases/download/{{ .Values.extensionsVersion }}/{{ $extension }}-{{ .Values.extensionsVersion }}.jar" >> /extensions/{{ $extension }}.jar
+      - curl -L "https://github.com/FWU-DE/fwu-kc-extensions/releases/download/{{ $extensionsVersion }}/{{ $extension }}-{{ $extensionsVersion }}.jar" >> /extensions/{{ $extension }}.jar
     volumeMounts:
       - name: extensions
         mountPath: /extensions
