@@ -6,6 +6,19 @@ Keycloak deployment for different environments using Helm.
 
 The GitHub workflow to run the deployment uses [environments](https://docs.github.com/en/actions/deployment/targeting-different-environments/using-environments-for-deployment).
 
+## Environment files
+
+Each environment is configured with `.env` files located in `.github/environments/`.
+
+| Name        | Description                              | Example           |
+| ----------- | ---------------------------------------- | ----------------- |
+| `VERSION` | Keycloak version to deploy. | `16.1.1` |
+| `NAMESPACE` | Kubernetes namespace to which to deploy. | `default`         |
+| `KC_MIN_PODS` | Minimum number of Pods for autoscaling. | `3` |
+| `KC_MAX_PODS` | Maximum number of Pods for autoscaling. | `10` |
+| `KC_EXTENSIONS` | Comma-separated list of Keycloak extensions from [this](https://github.com/FWU-DE/fwu-kc-extensions) repository. | `hmac-mapper,remove-user-on-logout` |
+| `KC_EXT_VERSION` | Version for the Keycloak extensions. | `1.0.0` |
+
 ## Repository Secrets
 
 | Name                   | Description                                                  | Example          |
@@ -20,12 +33,6 @@ Each environment must have the following secrets specified for the deployment:
 | Name        | Description                              | Example           |
 | ----------- | ---------------------------------------- | ----------------- |
 | `HOSTNAME`  | Keycloak URL of the environment.         | `dev.example.com` |
-| `NAMESPACE` | Kubernetes namespace to which to deploy. | `default`         |
-| `KC_MIN_PODS` | Minimum number of Pods for autoscaling. | `3` |
-| `KC_MAX_PODS` | Maximum number of Pods for autoscaling. | `10` |
-| `VERSION` | Keycloak version to deploy. | `16.1.1` |
-| `KC_EXTENSIONS` | Comma-separated list of Keycloak extensions from [this](https://github.com/FWU-DE/fwu-kc-extensions) repository. | `hmac-mapper,remove-user-on-logout` |
-| `KC_EXT_VERSION` | Version for the Keycloak extensions. | `1.0.0` |
 | `KC_USER` | Username of the Keycloak admin user. | `admin` |
 | `KC_USER_PASSWORD` | Password of the Keycloak admin user. | `jisbandu8h98DH` |
 | `KC_DB_ADDRESS` | Address of the PostgreSQL server to be used by Keycloak. | `pg183281.cloud.provider:5432` |
