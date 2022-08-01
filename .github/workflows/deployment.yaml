@@ -24,6 +24,10 @@ jobs:
         with:
           input: statefulset/ingress_tmpl.yml
           output: statefulset/ingress.yml
+      
+      - uses: c-py/action-dotenv-to-setenv@v2
+        with:
+          env-file: .github/environments/${{ inputs.environment }}.env
 
       - name: Deploy Keycloak to cluster
         uses: wahyd4/kubectl-helm-action@master
@@ -31,12 +35,11 @@ jobs:
           KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG }}
         with:
           args: |
-            source .github/environments/${{ inputs.environment }}.env
             helm repo add codecentric https://codecentric.github.io/helm-charts
             helm repo update
-            helm upgrade keycloak codecentric/keycloak --install -f statefulset/values.yaml -n $NAMESPACE \
-              --set image.tag=$VERSION,extensions={$KC_EXTENSIONS},extensionsVersion=$KC_EXT_VERSION \
-              --set autoscaling.minReplicas=$KC_MIN_PODS,autoscaling.maxReplicas=$KC_MAX_PODS \
+            helm upgrade keycloak codecentric/keycloak --install -f statefulset/values.yaml -n ${{ env.NAMESPACE }} \
+              --set image.tag=${{ env.VERSION }},extensions={${{ env.KC_EXTENSIONS }}},extensionsVersion=${{ env.KC_EXT_VERSION }} \
+              --set autoscaling.minReplicas=${{ env.KC_MIN_PODS }},autoscaling.maxReplicas=${{ env.KC_MAX_PODS }} \
               --set db.name=${{ secrets.KC_DB_NAME }},db.address=${{ secrets.KC_DB_ADDRESS }},db.user=${{ secrets.KC_DB_USER }},db.password=${{ secrets.KC_DB_PASSWORD }} \
               --set admin.user=${{ secrets.KC_USER }},admin.password=${{ secrets.KC_USER_PASSWORD }} \
               --set nexus.user=${{ secrets.NEXUS_THEME_USER }},nexus.password=${{ secrets.NEXUS_THEME_PASSWORD }}
@@ -46,8 +49,6 @@ jobs:
         env:
           KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
         with:
-          args: |
-            source .github/environments/${{ inputs.environment }}.env
-            apply -f statefulset/ingress.yml -n $NAMESPACE
+          args: apply -f statefulset/ingress.yml -n ${{ env.NAMESPACE }}
 
       - run: echo "This job's status is ${{ job.status }}."
